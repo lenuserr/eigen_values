@@ -1,10 +1,9 @@
 #include "inc.h"
-// 20:45. 30.11.23. Ебашим собственные значения. Приведение симм. м-цы к 3-хдиаг. виду. Let's go.
 
 int main(int argc, char* argv[]) {
     // ./a.out n m eps k filename
     int n = std::stoi(argv[1]);
-    int m = std::stoi(argv[2]);
+    [[maybe_unused]] int m = std::stoi(argv[2]);
     [[maybe_unused]] double eps = std::stoi(argv[3]);
     int k = std::stoi(argv[4]);
 

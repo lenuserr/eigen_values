@@ -5,7 +5,6 @@
 // 13:10. Приведение к трех.диаг виду готово.
 // 14:10. Residual1 и Residual2 отличные, всё правильно работает.
 // 16:50. QR пишу.
-// 18:30. QR написано. Думаю и пишу дальше.
 
 void solution(int n, double* matrix, double* x, double* y, double* r1, double* r2, double* r3) {
     double a_norm = matrix_norm(n, matrix);
@@ -40,7 +39,8 @@ void solution(int n, double* matrix, double* x, double* y, double* r1, double* r
     [[maybe_unused]] double residual2 = std::fabs(length1 - length2) / a_norm;
     //printf("Residual1 = %e Residual2 = %e\n", residual1, residual2);
 
-    // QR разложение вычисляем.
+    // считаем матрицу R в QR разложении по методу вращений.
+    // R храним в трех векторах r1, r2, r3 как в книжке.
     for (int k = 0; k < n - 1; ++k) {
         double u = matrix[n*k + k];
         double v = matrix[n*(k + 1) + k];
@@ -52,20 +52,33 @@ void solution(int n, double* matrix, double* x, double* y, double* r1, double* r
         x[k] = cos;
         y[k] = sin; 
         
-        // храним матрицу R в трех векторах как в книжке написано.
-        r1[k] = cos * matrix[n*k + k] - sin * matrix[n*(k+1) + k]; 
-        r1[k + 1] = sin * matrix[n*k + k + 1] + cos * matrix[n*(k + 1) + k + 1];
-        r2[k] = cos * matrix[n*k + k + 1] - sin * matrix[n*(k + 1) + k + 1]; 
+        double a = cos * matrix[n*k + k] - sin * matrix[n*(k+1) + k]; // r_kk
+        double b = cos * matrix[n*k + k + 1] - sin * matrix[n*(k + 1) + k + 1]; // r_k_k+1
+
         if (k + 2 < n) {
-            r2[k + 1] = cos * matrix[n*(k + 1) + k + 2];
-            r3[k] = -sin * matrix[n*(k + 1) + k + 2];
+            matrix[n*k + k + 2] = -sin * matrix[n*(k + 1) + k + 2];
+            matrix[n*(k + 1) + k + 2] = cos * matrix[n*(k + 1) + k + 2];
+            r2[k + 1] = matrix[n*(k + 1) + k + 2];
+            r3[k] = matrix[n*k + k + 2];
         }
+        matrix[n*(k + 1) + k] = sin * matrix[n*k + k] + cos * matrix[n*(k + 1) + k];
+        matrix[n*(k + 1) + k + 1] = sin * matrix[n*k + k + 1] + cos * matrix[n*(k + 1) + k + 1];
+
+        matrix[n*k + k] = a;
+        matrix[n*k + k + 1] = b;
+
+        r1[k] = matrix[n*k + k];
+        r1[k + 1] = matrix[n*(k + 1) + k + 1];
+
+        r2[k] = matrix[n*k + k + 1];
     } 
+    // Еще R лежит в matrix... Я это пока не фиксил, это лень и нетривиально. 
+    // Потом пофикшу если понадобится.
+    
 
-    // матрицу A не менял во время QR разложения. Она до сих пор 3хдиагональна, то есть A0.
-    // Она осталась в переменной matrix собственно.
-
-
+    print_y(n, r1);
+    print_y(n - 1, r2);
+    print_y(n - 2, r3);
 }
 
 void get_column(int n, int j, int k, double* matrix, double* y) {
@@ -195,3 +208,27 @@ void print_y(int size, double* y) {
     }
     std::cout << "\n";
 }
+
+
+/*
+WRONG:
+y:
+1.962142e+01 3.640604e+01 4.271541e+00 1.733508e+00 9.741234e-01 6.461675e-01 4.756767e-01 3.764488e-01 3.141168e-01 2.709010e-01 
+
+y:
+3.974972e+01 4.285055e+00 1.463439e+00 7.171818e-01 4.052346e-01 2.423755e-01 1.450517e-01 8.149180e-02 3.731916e-02 
+
+y:
+3.327805e+00 1.145048e-01 1.202875e-01 6.908339e-02 3.675512e-02 1.806739e-02 7.686232e-03 2.371138e-03 
+
+RIGHT:
+y:
+1.962142e+01 5.509991e+00 1.896175e+00 1.049475e+00 7.064626e-01 5.290485e-01 4.233567e-01 3.542917e-01 3.061182e-01 2.708488e-01 
+
+y:
+3.974972e+01 4.305380e+00 1.578885e+00 7.769641e-01 4.332691e-01 2.545264e-01 1.497108e-01 8.293891e-02 3.761167e-02 
+
+y:
+3.327805e+00 7.565650e-01 2.709734e-01 1.141109e-01 5.068070e-02 2.206709e-02 8.636125e-03 2.519427e-03
+
+*/
