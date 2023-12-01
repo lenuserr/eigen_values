@@ -41,9 +41,15 @@ void solution(int n, double* matrix, double* x, double* y, double* r1, double* r
 
     // считаем матрицу R в QR разложении по методу вращений.
     // R храним в трех векторах r1, r2, r3 как в книжке.
+    
+    // инициализация при k = 0:
+    r1[0] = matrix[0]; r2[0] = matrix[1]; r3[0] = matrix[2];
+    r1[1] = matrix[n + 1]; r2[1] = matrix[n + 2];
+
     for (int k = 0; k < n - 1; ++k) {
-        double u = matrix[n*k + k];
-        double v = matrix[n*(k + 1) + k];
+        double u = r1[k];
+        // это не баг, этот элемент действительно можно из matrix брать, т.к. он не меняется.
+        double v = matrix[n*(k + 1) + k]; 
         double denominator = std::sqrt(u * u + v * v);
         double cos = u / denominator;
         double sin = -v / denominator;
@@ -72,9 +78,7 @@ void solution(int n, double* matrix, double* x, double* y, double* r1, double* r
 
         r2[k] = matrix[n*k + k + 1];
     } 
-    // Еще R лежит в matrix... Я это пока не фиксил, это лень и нетривиально. 
-    // Потом пофикшу если понадобится.
-    
+    // Еще R лежит в matrix... Я это пока не фиксил, но можно.
 
     print_y(n, r1);
     print_y(n - 1, r2);
