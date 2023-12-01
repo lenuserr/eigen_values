@@ -22,14 +22,12 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    std::cout << "\nA:\n";
-    output(n, m, n, matrix);
-    std::cout << "\n";
-
     double* x = new double[n];
     double* y = new double[n];
-    double* c = new double[n];
-    solution(n, matrix, x, y, c);
+    double* r1 = new double[n];
+    double* r2 = new double[n];
+    double* r3 = new double[n];
+    solution(n, matrix, x, y, r1, r2, r3);
 
     std::cout << "\nA:\n";
     output(n, m, n, matrix);
@@ -44,6 +42,8 @@ int main(int argc, char* argv[]) {
     delete[] matrix;
     delete[] x;
     delete[] y;
-    delete[] c;
+    delete[] r1;
+    delete[] r2;
+    delete[] r3;
     return 0;
 }
