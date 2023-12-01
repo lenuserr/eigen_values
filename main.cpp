@@ -29,10 +29,6 @@ int main(int argc, char* argv[]) {
 
     solution(n, matrix, x, y, r1, r2, r3);
 
-    std::cout << "\nR:\n";
-    output(n, m, n, matrix);
-    std::cout << "\n";
-
     /*
     printf ("%s : Residual1 = %e Residual2 = %e Iterations = %d \
     Iterations1 = %d Elapsed1 = %.2f Elapsed2 = %.2f\n",

@@ -37,58 +37,18 @@ void solution(int n, double* matrix, double* x, double* y, double* r1, double* r
     [[maybe_unused]] double residual2 = std::fabs(length1 - length2) / a_norm;
     //printf("Residual1 = %e Residual2 = %e\n", residual1, residual2);
 
-    std::cout << "\nA:\n";
-    output(n, n, n, matrix);
-    std::cout << "\n";
-
-    // считаем матрицу R в QR разложении по методу вращений.
-    // считаем матрицу R в QR разложении по методу вращений.
-    // R храним в трех векторах r1, r2, r3 как в книжке.
-    for (int k = 0; k < n - 1; ++k) {
-        double u = matrix[n*k + k];
-        double v = matrix[n*(k + 1) + k];
-        double denominator = std::sqrt(u * u + v * v);
-        double cos = u / denominator;
-        double sin = -v / denominator; 
-
-        // храним матрицу Q в двух векторах как в книжке написано.
-        x[k] = cos;
-        y[k] = sin; 
-        
-        double a = cos * matrix[n*k + k] - sin * matrix[n*(k+1) + k]; // r_kk
-        double b = cos * matrix[n*k + k + 1] - sin * matrix[n*(k + 1) + k + 1]; // r_k_k+1
-
-        if (k + 2 < n) {
-            matrix[n*k + k + 2] = -sin * matrix[n*(k + 1) + k + 2];
-            matrix[n*(k + 1) + k + 2] = cos * matrix[n*(k + 1) + k + 2];
-            r2[k + 1] = matrix[n*(k + 1) + k + 2];
-            r3[k] = matrix[n*k + k + 2];
+    // храним матрицу A в трех векторах. Теперь из нее получим R. let's go.
+    for (int k = 0; k < n; ++k) {
+        r1[k] = matrix[n*k + k]; // main
+        if (k < n - 1) {
+            r2[k] = matrix[n*k + k + 1]; // right
+            r3[k] = matrix[n*(k + 1) + k]; // left
         }
-        matrix[n*(k + 1) + k] = sin * matrix[n*k + k] + cos * matrix[n*(k + 1) + k];
-        matrix[n*(k + 1) + k + 1] = sin * matrix[n*k + k + 1] + cos * matrix[n*(k + 1) + k + 1];
-
-        matrix[n*k + k] = a;
-        matrix[n*k + k + 1] = b;
-
-        r1[k] = matrix[n*k + k];
-        r1[k + 1] = matrix[n*(k + 1) + k + 1];
-
-        r2[k] = matrix[n*k + k + 1];
     }
- 
-    // Еще R лежит в matrix... Я это пока не фиксил, это лень и нетривиально. 
-    // Потом пофикшу если понадобится. Но вроде это не понадобится.
 
-    // считаю произведение RQ.
-    for (int k = 0; k < n - 1; ++k) {
-        // diag_main - это r1.
-        // diag_right - это r2.
-        // diag_left пусть будет r3. обозначения из тетрадки.
-
-        r1[k] = r1[k] * x[k] - r2[k] * y[k];
-        r3[k] = -r1[k + 1] * y[k];
-        r1[k + 1] *= x[k];
-    }
+    QR(n, x, y, r1, r2, r3);
+    
+    RQ_product(n, x, y, r1, r2, r3);
 
     double trace3 = 0;
     double length3 = 0;
@@ -102,8 +62,53 @@ void solution(int n, double* matrix, double* x, double* y, double* r1, double* r
 
     length3 = std::sqrt(length3);
 
-    //std::cout << trace1 << " " << trace2 << " " << trace3 << "\n";
-    //std::cout << length1 << " " << length2 << " " << length3 << "\n";
+    std::cout << trace1 << " " << trace2 << " " << trace3 << "\n";
+    std::cout << length1 << " " << length2 << " " << length3 << "\n";
+}
+
+void QR(int n, double* x, double* y, double* r1, double* r2, double* r3) {
+    // матрица на вход трехдиагональная хранится в r1, r2, r3.
+    // на выход x и y косинусы и синусы (т.е. Q)
+    // а r1 и r2 (только их считаю) две диагонали матрицы R, которые мне нужны для дальнейшего счёта.
+
+    // r3 мне вычислять не нужно, только по памяти к нему обращаюсь и всё.
+    // r1 и r2 мне нужно вычислить.
+    for (int k = 0; k < n - 1; ++k) {
+        double u = r1[k];
+        double v = r3[k];
+        double denominator = std::sqrt(u * u + v * v);
+        double cos = u / denominator;
+        double sin = -v / denominator; 
+
+        // храним матрицу Q в двух векторах как в книжке написано.
+        x[k] = cos;
+        y[k] = sin; 
+        
+        double a = cos * r1[k] - sin * r3[k]; 
+        double b = cos * r2[k] - sin * r1[k + 1];
+
+        if (k + 2 < n) {
+            r2[k + 1] *= cos;
+        }
+
+        r3[k] = sin * r1[k] + cos * r3[k];
+        r1[k + 1] = sin * r2[k] + cos * r1[k + 1];
+        r1[k] = a;
+        r2[k] = b;
+    }
+}
+
+void RQ_product(int n, double* x, double* y, double* r1, double* r2, double* r3) {
+    // считаю произведение RQ.
+    for (int k = 0; k < n - 1; ++k) {
+        // diag_main - это r1.
+        // diag_right - это r2.
+        // diag_left пусть будет r3. обозначения из тетрадки.
+
+        r1[k] = r1[k] * x[k] - r2[k] * y[k];
+        r3[k] = -r1[k + 1] * y[k];
+        r1[k + 1] *= x[k];
+    }
 }
 
 void get_column(int n, int j, int k, double* matrix, double* y) {

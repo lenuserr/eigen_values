@@ -19,3 +19,5 @@ double matrix_length(int n, double* matrix);
 double vector_norm(int size, double* vector);
 double scalar_product(int size, double* a, double* b);
 void product(int size, double* x, double* y, double* c);
+void QR(int n, double* x, double* y, double* r1, double* r2, double* r3);
+void RQ_product(int n, double* x, double* y, double* r1, double* r2, double* r3);
