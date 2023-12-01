@@ -22,6 +22,10 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    std::cout << "\nA:\n";
+    output(n, m, n, matrix);
+    std::cout << "\n";
+
     double* x = new double[n];
     double* y = new double[n];
     double* c = new double[n];
