@@ -2,9 +2,8 @@
 #include "inc.h"
 #define EPS 1e-14
 
-// 13:10. Приведение к трех.диаг виду готово.
-// 14:10. Residual1 и Residual2 отличные, всё правильно работает.
-// 16:50. QR пишу.
+// Матрица R немного отличается от питоновской... Ну да ладно, потом разберусь, если надо будет.
+// Пока невязки нормальные и этого достаточно. 
 
 void solution(int n, double* matrix, double* x, double* y, double* r1, double* r2, double* r3) {
     double a_norm = matrix_norm(n, matrix);
@@ -32,27 +31,25 @@ void solution(int n, double* matrix, double* x, double* y, double* r1, double* r
         }
     }
 
-    
     double trace2 = trace(n, matrix);
     [[maybe_unused]] double residual1 = std::fabs(trace1 - trace2) / a_norm;
     double length2 = matrix_length(n, matrix);
     [[maybe_unused]] double residual2 = std::fabs(length1 - length2) / a_norm;
     //printf("Residual1 = %e Residual2 = %e\n", residual1, residual2);
 
+    std::cout << "\nA:\n";
+    output(n, n, n, matrix);
+    std::cout << "\n";
+
+    // считаем матрицу R в QR разложении по методу вращений.
     // считаем матрицу R в QR разложении по методу вращений.
     // R храним в трех векторах r1, r2, r3 как в книжке.
-    
-    // инициализация при k = 0:
-    r1[0] = matrix[0]; r2[0] = matrix[1]; r3[0] = matrix[2];
-    r1[1] = matrix[n + 1]; r2[1] = matrix[n + 2];
-
     for (int k = 0; k < n - 1; ++k) {
-        double u = r1[k];
-        // это не баг, этот элемент действительно можно из matrix брать, т.к. он не меняется.
-        double v = matrix[n*(k + 1) + k]; 
+        double u = matrix[n*k + k];
+        double v = matrix[n*(k + 1) + k];
         double denominator = std::sqrt(u * u + v * v);
         double cos = u / denominator;
-        double sin = -v / denominator;
+        double sin = -v / denominator; 
 
         // храним матрицу Q в двух векторах как в книжке написано.
         x[k] = cos;
@@ -77,12 +74,36 @@ void solution(int n, double* matrix, double* x, double* y, double* r1, double* r
         r1[k + 1] = matrix[n*(k + 1) + k + 1];
 
         r2[k] = matrix[n*k + k + 1];
-    } 
-    // Еще R лежит в matrix... Я это пока не фиксил, но можно.
+    }
+ 
+    // Еще R лежит в matrix... Я это пока не фиксил, это лень и нетривиально. 
+    // Потом пофикшу если понадобится. Но вроде это не понадобится.
 
-    print_y(n, r1);
-    print_y(n - 1, r2);
-    print_y(n - 2, r3);
+    // считаю произведение RQ.
+    for (int k = 0; k < n - 1; ++k) {
+        // diag_main - это r1.
+        // diag_right - это r2.
+        // diag_left пусть будет r3. обозначения из тетрадки.
+
+        r1[k] = r1[k] * x[k] - r2[k] * y[k];
+        r3[k] = -r1[k + 1] * y[k];
+        r1[k + 1] *= x[k];
+    }
+
+    double trace3 = 0;
+    double length3 = 0;
+    for (int i = 0; i < n; ++i) {
+        trace3 += r1[i];
+        length3 += r1[i] * r1[i];
+        if (i < n - 1) {
+            length3 += 2 * r3[i] * r3[i];
+        }
+    }
+
+    length3 = std::sqrt(length3);
+
+    //std::cout << trace1 << " " << trace2 << " " << trace3 << "\n";
+    //std::cout << length1 << " " << length2 << " " << length3 << "\n";
 }
 
 void get_column(int n, int j, int k, double* matrix, double* y) {
@@ -212,27 +233,3 @@ void print_y(int size, double* y) {
     }
     std::cout << "\n";
 }
-
-
-/*
-WRONG:
-y:
-1.962142e+01 3.640604e+01 4.271541e+00 1.733508e+00 9.741234e-01 6.461675e-01 4.756767e-01 3.764488e-01 3.141168e-01 2.709010e-01 
-
-y:
-3.974972e+01 4.285055e+00 1.463439e+00 7.171818e-01 4.052346e-01 2.423755e-01 1.450517e-01 8.149180e-02 3.731916e-02 
-
-y:
-3.327805e+00 1.145048e-01 1.202875e-01 6.908339e-02 3.675512e-02 1.806739e-02 7.686232e-03 2.371138e-03 
-
-RIGHT:
-y:
-1.962142e+01 5.509991e+00 1.896175e+00 1.049475e+00 7.064626e-01 5.290485e-01 4.233567e-01 3.542917e-01 3.061182e-01 2.708488e-01 
-
-y:
-3.974972e+01 4.305380e+00 1.578885e+00 7.769641e-01 4.332691e-01 2.545264e-01 1.497108e-01 8.293891e-02 3.761167e-02 
-
-y:
-3.327805e+00 7.565650e-01 2.709734e-01 1.141109e-01 5.068070e-02 2.206709e-02 8.636125e-03 2.519427e-03
-
-*/

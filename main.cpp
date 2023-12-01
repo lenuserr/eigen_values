@@ -26,9 +26,10 @@ int main(int argc, char* argv[]) {
     double* r1 = new double[n];
     double* r2 = new double[n];
     double* r3 = new double[n];
+
     solution(n, matrix, x, y, r1, r2, r3);
 
-    std::cout << "\nA:\n";
+    std::cout << "\nR:\n";
     output(n, m, n, matrix);
     std::cout << "\n";
 
