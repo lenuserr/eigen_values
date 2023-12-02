@@ -21,13 +21,17 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    std::cout << "A:\n";
+    output(n, n, n, matrix);
+    std::cout << "\n";
+
     double* x = new double[n];
     double* y = new double[n];
     double* r1 = new double[n];
     double* r2 = new double[n];
     double* r3 = new double[n];
-
-    solution(n, matrix, x, y, r1, r2, r3);
+    double* lambda = new double[n]; // сюда буду складывать собственные значения.
+    solution(n, matrix, x, y, r1, r2, r3, lambda);
 
     /*
     printf ("%s : Residual1 = %e Residual2 = %e Iterations = %d \
@@ -35,11 +39,16 @@ int main(int argc, char* argv[]) {
     argv[0], res1, res2, its, its / n, t1, t2);
     */
 
+    std::cout << "\nlambda:\n";
+    output(n, m, 1, lambda);
+    std::cout << "\n";
+
     delete[] matrix;
     delete[] x;
     delete[] y;
     delete[] r1;
     delete[] r2;
     delete[] r3;
+    delete[] lambda;
     return 0;
 }

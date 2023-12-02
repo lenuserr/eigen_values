@@ -5,7 +5,8 @@
 // Матрица R немного отличается от питоновской... Ну да ладно, потом разберусь, если надо будет.
 // Пока невязки нормальные и этого достаточно. 
 
-void solution(int n, double* matrix, double* x, double* y, double* r1, double* r2, double* r3) {
+void solution(int n, double* matrix, double* x, double* y,
+ double* r1, double* r2, double* r3, double* lambda) {
     double a_norm = matrix_norm(n, matrix);
     double trace1 = trace(n, matrix);
     double length1 = matrix_length(n, matrix);
@@ -46,10 +47,45 @@ void solution(int n, double* matrix, double* x, double* y, double* r1, double* r
         }
     }
 
-    QR(n, x, y, r1, r2, r3);
-    
-    RQ_product(n, x, y, r1, r2, r3);
+    // an,n-1 = r3[n - 1] везде
+    double s = 0;
 
+    // WHILE ТУТ ТОЖЕ НАДО СДЕЛАТЬ, А НЕ FOR.
+    int k = n;
+    while (k > 2) { // квадратное уравнение потом порешаю, а пока найду n - 2 корня.
+        // r3[k - 2] и r1[k - 1] !!!!
+        while (std::fabs(r3[k - 2]) >= EPS * a_norm) {
+            // ВЕЗДЕ НАДО ПИСАТЬ k , а не n!!!
+            // s = r1[k] +- 0.5 * r3[k - 1]
+            // подбираем сдвиг и делаем итерацию.
+            if ((r1[k - 1] > EPS && r3[k - 2] > EPS) || (r1[k - 1] < EPS && r3[k - 2] < EPS)) {
+                s = r1[k - 1] + 0.5 * r3[k - 2];
+            } else {
+                s = r1[k - 1] - 0.5 * r3[k - 2];
+            }
+
+            // Ak - sE. для нее делать QR надо.
+            for (int i = 0; i < k; ++i) {
+                r1[i] -= s;
+            }
+
+            QR(k, x, y, r1, r2, r3);
+            RQ_product(k, x, y, r1, r2, r3);
+
+            // A_{k+1} = RQ + sE теперь надо сделать.
+            for (int i = 0; i < k; ++i) {
+                r1[i] += s;
+            }
+        }
+        
+        // один раз мы сюда точно зайдем и сделаем всё правильно
+        while (k > 2 && std::fabs(r3[k - 2]) < EPS * a_norm) {
+            lambda[k - 1] = r1[k - 1];
+            --k;
+        }
+    }
+
+    /*
     double trace3 = 0;
     double length3 = 0;
     for (int i = 0; i < n; ++i) {
@@ -64,6 +100,7 @@ void solution(int n, double* matrix, double* x, double* y, double* r1, double* r
 
     std::cout << trace1 << " " << trace2 << " " << trace3 << "\n";
     std::cout << length1 << " " << length2 << " " << length3 << "\n";
+    */
 }
 
 void QR(int n, double* x, double* y, double* r1, double* r2, double* r3) {
@@ -99,7 +136,7 @@ void QR(int n, double* x, double* y, double* r1, double* r2, double* r3) {
 }
 
 void RQ_product(int n, double* x, double* y, double* r1, double* r2, double* r3) {
-    // считаю произведение RQ.
+    // считаю произведение RQ, которое будет трехдиагональным, симметричным.
     for (int k = 0; k < n - 1; ++k) {
         // diag_main - это r1.
         // diag_right - это r2.
@@ -108,6 +145,11 @@ void RQ_product(int n, double* x, double* y, double* r1, double* r2, double* r3)
         r1[k] = r1[k] * x[k] - r2[k] * y[k];
         r3[k] = -r1[k + 1] * y[k];
         r1[k + 1] *= x[k];
+    }
+
+    // скопируем r3 в r2, ведь они одинаковые должны быть.
+    for (int i = 0; i < n - 1; ++i) {
+        r2[i] = r3[i];
     }
 }
 
