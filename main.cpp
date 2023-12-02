@@ -3,8 +3,8 @@
 int main(int argc, char* argv[]) {
     // ./a.out n m eps k filename
     int n = std::stoi(argv[1]);
-    [[maybe_unused]] int m = std::stoi(argv[2]);
-    [[maybe_unused]] double eps = std::stoi(argv[3]);
+    int m = std::stoi(argv[2]);
+    double eps = std::stod(argv[3]);
     int k = std::stoi(argv[4]);
 
     double* matrix = new double[n*n];
@@ -29,13 +29,19 @@ int main(int argc, char* argv[]) {
     double trace_a = trace(n, matrix);
     double length_a = matrix_length(n, matrix);
 
+    if (std::fabs(matrix[n] - matrix[1]) > eps * a_norm) {
+        std::cout << "Метод работает только для симметричных матриц" << "\n";
+        delete[] matrix;
+        return -1;
+    } 
+
     double* x = new double[n];
     double* y = new double[n];
     double* r1 = new double[n];
     double* r2 = new double[n];
     double* r3 = new double[n];
-    double* lambda = new double[n]; // сюда буду складывать собственные значения.
-    int its = solution(n, a_norm, matrix, x, y, r1, r2, r3, lambda);
+    double* lambda = new double[n];
+    int its = solution(n, a_norm, matrix, x, y, r1, r2, r3, lambda, eps);
 
     std::cout << "\nlambda:\n";
     output(n, m, 1, lambda);

@@ -1,27 +1,20 @@
-#include <cmath>
 #include "inc.h"
-#define EPS 1e-14
-
-// Матрица R немного отличается от питоновской... Ну да ладно, потом разберусь, если надо будет.
-// Пока невязки нормальные и этого достаточно. 
 
 int solution(int n, double a_norm, double* matrix, double* x, double* y,
- double* r1, double* r2, double* r3, double* lambda) {
-    for (int j = 0; j < n - 2; ++j) { // n - 2 шага надо для приведения к трех.диаг виду.
+ double* r1, double* r2, double* r3, double* lambda, double EPS) {
+    for (int j = 0; j < n - 2; ++j) { 
         int size = n - j - 1;
         get_column(n, j, j, matrix, y);
-        if (!build_x(size, x, y)) {
+        if (!build_x(size, x, y, a_norm, EPS)) {
             continue;
         }
 
-        // умножение слева на U(x)
         for (int k = j; k < n; ++k) {
             get_column(n, j, k, matrix, y);
             product(size, x, y, r1);
             put_column(n, j, k, matrix, r1);
         }
 
-        // умножение справа на U(x).T = U(x)
         for (int k = j; k < n; ++k) {
            get_row(n, j, k, matrix, y);
            product(size, x, y, r1);
@@ -29,83 +22,62 @@ int solution(int n, double a_norm, double* matrix, double* x, double* y,
         }
     }
 
-    // храним матрицу A в трех векторах. Теперь из нее получим R. let's go.
     for (int k = 0; k < n; ++k) {
-        r1[k] = matrix[n*k + k]; // main
+        r1[k] = matrix[n*k + k]; 
         if (k < n - 1) {
-            r2[k] = matrix[n*k + k + 1]; // right
-            r3[k] = matrix[n*(k + 1) + k]; // left
+            r2[k] = matrix[n*k + k + 1]; 
+            r3[k] = matrix[n*(k + 1) + k]; 
         }
     }
 
-    // an,n-1 = r3[n - 1] везде
     double s = 0;
-    // WHILE ТУТ ТОЖЕ НАДО СДЕЛАТЬ, А НЕ FOR.
     int k = n;
     int its = 0;
-    while (k > 2) { // квадратное уравнение потом порешаю, а пока найду n - 2 корня.
-        // r3[k - 2] и r1[k - 1] !!!!
+    while (k > 2) { 
         while (std::fabs(r3[k - 2]) >= EPS * a_norm) {
-            its++;
-            // ВЕЗДЕ НАДО ПИСАТЬ k , а не n!!!
-            // s = r1[k] +- 0.5 * r3[k - 1]
-            // подбираем сдвиг и делаем итерацию.
             if ((r1[k - 1] > EPS * a_norm && r3[k - 2] > EPS * a_norm) || (r1[k - 1] < EPS * a_norm && r3[k - 2] < EPS * a_norm)) {
                 s = r1[k - 1] + 0.5 * r3[k - 2];
             } else {
                 s = r1[k - 1] - 0.5 * r3[k - 2];
             }
 
-            // Ak - sE. для нее делать QR надо.
+            
             for (int i = 0; i < k; ++i) {
                 r1[i] -= s;
             }
-
             QR(k, x, y, r1, r2, r3);
             RQ_product(k, x, y, r1, r2, r3);
-
-            // A_{k+1} = RQ + sE теперь надо сделать.
             for (int i = 0; i < k; ++i) {
                 r1[i] += s;
             }
+
+            its++;
         }
         
-        // один раз мы сюда точно зайдем и сделаем всё правильно
-        // ТУТ КАЖЕТСЯ МОЖНО СДЕЛАТЬ while (k > 0 ..). Вдруг последние 2 или 1 кратны с кем-то типо.
         while (k > 2 && std::fabs(r3[k - 2]) < EPS * a_norm) {
             lambda[k - 1] = r1[k - 1];
             --k;
         }
     }
 
-    // квадратное уравнение теперь решаем
-    // чтобы найти lambda[0] и lambda[1]
-    double D = r1[0]*r1[0] + r1[1]*r1[1] + 4*r3[0]*r3[0] -2*r1[0]*r1[1];
-    if(std::fabs(D) < EPS * a_norm) { // случай одного корня
-        lambda[0] = (r1[0] + r1[1]) / 2;
-        lambda[1] = lambda[0];
-    } else if (D > EPS * a_norm) {
-        if (r1[0] + r1[1] > EPS * a_norm) {
-            lambda[0] = (r1[0] + r1[1] + std::sqrt(D)) / 2;
-        } else {
-            lambda[0] = (r1[0] + r1[1] - std::sqrt(D)) / 2;
-        }
-
-        lambda[1] = (r1[0]*r1[1] - r3[0]*r3[0]) / lambda[0];
-    } else {
-        std::cout << "НЕ МОГУ РЕШИТЬ КВАДРАТНОЕ УРАВНЕНИЕ" << "\n";
+    if (n == 1) {
+        lambda[0] = matrix[0];
+        return 0;
     }
+
+    double D = r1[0]*r1[0] + r1[1]*r1[1] + 4*r3[0]*r3[0] -2*r1[0]*r1[1];
+    if (r1[0] + r1[1] > EPS * a_norm) {
+        lambda[0] = (r1[0] + r1[1] + std::sqrt(D)) / 2;
+    } else {
+        lambda[0] = (r1[0] + r1[1] - std::sqrt(D)) / 2;
+    }
+
+    lambda[1] = (r1[0]*r1[1] - r3[0]*r3[0]) / lambda[0];
 
     return its;
 }
 
 void QR(int n, double* x, double* y, double* r1, double* r2, double* r3) {
-    // матрица на вход трехдиагональная хранится в r1, r2, r3.
-    // на выход x и y косинусы и синусы (т.е. Q)
-    // а r1 и r2 (только их считаю) две диагонали матрицы R, которые мне нужны для дальнейшего счёта.
-
-    // r3 мне вычислять не нужно, только по памяти к нему обращаюсь и всё.
-    // r1 и r2 мне нужно вычислить.
     for (int k = 0; k < n - 1; ++k) {
         double u = r1[k];
         double v = r3[k];
@@ -113,7 +85,6 @@ void QR(int n, double* x, double* y, double* r1, double* r2, double* r3) {
         double cos = u / denominator;
         double sin = -v / denominator; 
 
-        // храним матрицу Q в двух векторах как в книжке написано.
         x[k] = cos;
         y[k] = sin; 
         
@@ -132,18 +103,12 @@ void QR(int n, double* x, double* y, double* r1, double* r2, double* r3) {
 }
 
 void RQ_product(int n, double* x, double* y, double* r1, double* r2, double* r3) {
-    // считаю произведение RQ, которое будет трехдиагональным, симметричным.
     for (int k = 0; k < n - 1; ++k) {
-        // diag_main - это r1.
-        // diag_right - это r2.
-        // diag_left пусть будет r3. обозначения из тетрадки.
-
         r1[k] = r1[k] * x[k] - r2[k] * y[k];
         r3[k] = -r1[k + 1] * y[k];
         r1[k + 1] *= x[k];
     }
 
-    // скопируем r3 в r2, ведь они одинаковые должны быть.
     for (int i = 0; i < n - 1; ++i) {
         r2[i] = r3[i];
     }
@@ -181,9 +146,9 @@ void put_row(int n, int j, int k, double* matrix, double* c) {
     }   
 }
 
-bool is_zero(int size, double* y) {
+bool is_zero(int size, double* y, double a_norm, double EPS) {
     for (int i = 0; i < size; ++i) {
-        if (std::fabs(y[i]) > EPS) {
+        if (std::fabs(y[i]) > EPS * a_norm) {
             return false;
         }
     } 
@@ -191,12 +156,12 @@ bool is_zero(int size, double* y) {
     return true;
 }
 
-bool build_x(int size, double* x, double* y) {
+bool build_x(int size, double* x, double* y, double a_norm, double EPS) {
     bool flag = true;
     double norm_y = vector_norm(size, y);
     y[0] -= norm_y;
     
-    if (!is_zero(size, y)) {
+    if (!is_zero(size, y, a_norm, EPS)) {
         double norm_denominator = vector_norm(size, y);
         for (int i = 0; i < size; ++i) {
             x[i] = y[i] / norm_denominator;
@@ -205,8 +170,7 @@ bool build_x(int size, double* x, double* y) {
         flag = false;
     }
 
-    y[0] += norm_y; // чтобы y стал таким каким был.
-    // это супер важно, иначе дальше неправильно считаться всё будет.
+    y[0] += norm_y; 
     return flag;
 }
 
