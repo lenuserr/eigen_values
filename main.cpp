@@ -31,6 +31,10 @@ int main(int argc, char* argv[]) {
 
     if (std::fabs(matrix[n] - matrix[1]) > eps * a_norm) {
         std::cout << "Метод работает только для симметричных матриц" << "\n";
+
+        printf ("%s : Residual1 = %e Residual2 = %e Iterations = %d \
+        Iterations1 = %d Elapsed1 = %.2f Elapsed2 = %.2f\n",
+        argv[0], -1., -1., 0, 0, 0., 0.);
         delete[] matrix;
         return -1;
     } 
@@ -41,7 +45,10 @@ int main(int argc, char* argv[]) {
     double* r2 = new double[n];
     double* r3 = new double[n];
     double* lambda = new double[n];
-    int its = solution(n, a_norm, matrix, x, y, r1, r2, r3, lambda, eps);
+
+    double t1;
+    double t2;
+    int its = solution(n, a_norm, matrix, x, y, r1, r2, r3, lambda, eps, &t1, &t2);
 
     std::cout << "\nlambda:\n";
     output(n, m, 1, lambda);
@@ -49,8 +56,6 @@ int main(int argc, char* argv[]) {
 
     double res1 = residual1(n, trace_a, a_norm, lambda);
     double res2 = residual2(n, length_a, a_norm, lambda);
-    double t1 = 0;
-    double t2 = 0;
     
     printf ("%s : Residual1 = %e Residual2 = %e Iterations = %d \
     Iterations1 = %d Elapsed1 = %.2f Elapsed2 = %.2f\n",

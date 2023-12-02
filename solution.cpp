@@ -1,7 +1,9 @@
+#include <sys/resource.h>
 #include "inc.h"
 
 int solution(int n, double a_norm, double* matrix, double* x, double* y,
- double* r1, double* r2, double* r3, double* lambda, double EPS) {
+ double* r1, double* r2, double* r3, double* lambda, double EPS, double* t1, double* t2) {
+    *t1 = get_cpu_time();
     for (int j = 0; j < n - 2; ++j) { 
         int size = n - j - 1;
         get_column(n, j, j, matrix, y);
@@ -22,6 +24,9 @@ int solution(int n, double a_norm, double* matrix, double* x, double* y,
         }
     }
 
+    *t1 = get_cpu_time() - *t1;
+
+    *t2 = get_cpu_time();
     for (int k = 0; k < n; ++k) {
         r1[k] = matrix[n*k + k]; 
         if (k < n - 1) {
@@ -59,6 +64,8 @@ int solution(int n, double a_norm, double* matrix, double* x, double* y,
             --k;
         }
     }
+
+    *t2 = get_cpu_time() - *t2;
 
     if (n == 1) {
         lambda[0] = matrix[0];
@@ -258,4 +265,10 @@ double residual2(int n, double length_a, double a_norm, double* lambda) {
 
     sum = std::sqrt(sum);
     return std::fabs(length_a - sum) / a_norm;
+}
+
+double get_cpu_time() {
+    struct rusage buf;
+    getrusage(RUSAGE_THREAD, &buf);
+    return buf.ru_utime.tv_sec + buf.ru_utime.tv_usec * 1e-6;
 }

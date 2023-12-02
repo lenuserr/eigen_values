@@ -8,7 +8,7 @@ bool read_file(const std::string& name_file, int n, double* matrix);
 void output(int n, int r, int l, double* vec);
 void print_y(int size, double* y);
 int solution(int n, double a_norm, double* matrix, double* x, double* y,
- double* r1, double* r2, double* r3, double* lambda, double EPS);
+ double* r1, double* r2, double* r3, double* lambda, double EPS, double* t1, double* t2);
 void get_column(int n, int j, int k, double* matrix, double* y);
 void put_column(int n, int j, int k, double* matrix, double* c);
 void get_row(int n, int j, int k, double* matrix, double* y);
@@ -25,3 +25,4 @@ void QR(int n, double* x, double* y, double* r1, double* r2, double* r3);
 void RQ_product(int n, double* x, double* y, double* r1, double* r2, double* r3);
 double residual1(int n, double trace_a, double a_norm, double* lambda);
 double residual2(int n, double length_a, double a_norm, double* lambda);
+double get_cpu_time();
