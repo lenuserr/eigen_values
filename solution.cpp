@@ -5,11 +5,8 @@
 // Матрица R немного отличается от питоновской... Ну да ладно, потом разберусь, если надо будет.
 // Пока невязки нормальные и этого достаточно. 
 
-void solution(int n, double* matrix, double* x, double* y,
+int solution(int n, double a_norm, double* matrix, double* x, double* y,
  double* r1, double* r2, double* r3, double* lambda) {
-    double a_norm = matrix_norm(n, matrix);
-    double trace1 = trace(n, matrix);
-    double length1 = matrix_length(n, matrix);
     for (int j = 0; j < n - 2; ++j) { // n - 2 шага надо для приведения к трех.диаг виду.
         int size = n - j - 1;
         get_column(n, j, j, matrix, y);
@@ -32,12 +29,6 @@ void solution(int n, double* matrix, double* x, double* y,
         }
     }
 
-    double trace2 = trace(n, matrix);
-    [[maybe_unused]] double residual1 = std::fabs(trace1 - trace2) / a_norm;
-    double length2 = matrix_length(n, matrix);
-    [[maybe_unused]] double residual2 = std::fabs(length1 - length2) / a_norm;
-    //printf("Residual1 = %e Residual2 = %e\n", residual1, residual2);
-
     // храним матрицу A в трех векторах. Теперь из нее получим R. let's go.
     for (int k = 0; k < n; ++k) {
         r1[k] = matrix[n*k + k]; // main
@@ -49,16 +40,17 @@ void solution(int n, double* matrix, double* x, double* y,
 
     // an,n-1 = r3[n - 1] везде
     double s = 0;
-
     // WHILE ТУТ ТОЖЕ НАДО СДЕЛАТЬ, А НЕ FOR.
     int k = n;
+    int its = 0;
     while (k > 2) { // квадратное уравнение потом порешаю, а пока найду n - 2 корня.
         // r3[k - 2] и r1[k - 1] !!!!
         while (std::fabs(r3[k - 2]) >= EPS * a_norm) {
+            its++;
             // ВЕЗДЕ НАДО ПИСАТЬ k , а не n!!!
             // s = r1[k] +- 0.5 * r3[k - 1]
             // подбираем сдвиг и делаем итерацию.
-            if ((r1[k - 1] > EPS && r3[k - 2] > EPS) || (r1[k - 1] < EPS && r3[k - 2] < EPS)) {
+            if ((r1[k - 1] > EPS * a_norm && r3[k - 2] > EPS * a_norm) || (r1[k - 1] < EPS * a_norm && r3[k - 2] < EPS * a_norm)) {
                 s = r1[k - 1] + 0.5 * r3[k - 2];
             } else {
                 s = r1[k - 1] - 0.5 * r3[k - 2];
@@ -79,28 +71,32 @@ void solution(int n, double* matrix, double* x, double* y,
         }
         
         // один раз мы сюда точно зайдем и сделаем всё правильно
+        // ТУТ КАЖЕТСЯ МОЖНО СДЕЛАТЬ while (k > 0 ..). Вдруг последние 2 или 1 кратны с кем-то типо.
         while (k > 2 && std::fabs(r3[k - 2]) < EPS * a_norm) {
             lambda[k - 1] = r1[k - 1];
             --k;
         }
     }
 
-    /*
-    double trace3 = 0;
-    double length3 = 0;
-    for (int i = 0; i < n; ++i) {
-        trace3 += r1[i];
-        length3 += r1[i] * r1[i];
-        if (i < n - 1) {
-            length3 += 2 * r3[i] * r3[i];
+    // квадратное уравнение теперь решаем
+    // чтобы найти lambda[0] и lambda[1]
+    double D = r1[0]*r1[0] + r1[1]*r1[1] + 4*r3[0]*r3[0] -2*r1[0]*r1[1];
+    if(std::fabs(D) < EPS * a_norm) { // случай одного корня
+        lambda[0] = (r1[0] + r1[1]) / 2;
+        lambda[1] = lambda[0];
+    } else if (D > EPS * a_norm) {
+        if (r1[0] + r1[1] > EPS * a_norm) {
+            lambda[0] = (r1[0] + r1[1] + std::sqrt(D)) / 2;
+        } else {
+            lambda[0] = (r1[0] + r1[1] - std::sqrt(D)) / 2;
         }
+
+        lambda[1] = (r1[0]*r1[1] - r3[0]*r3[0]) / lambda[0];
+    } else {
+        std::cout << "НЕ МОГУ РЕШИТЬ КВАДРАТНОЕ УРАВНЕНИЕ" << "\n";
     }
 
-    length3 = std::sqrt(length3);
-
-    std::cout << trace1 << " " << trace2 << " " << trace3 << "\n";
-    std::cout << length1 << " " << length2 << " " << length3 << "\n";
-    */
+    return its;
 }
 
 void QR(int n, double* x, double* y, double* r1, double* r2, double* r3) {
@@ -279,4 +275,23 @@ void print_y(int size, double* y) {
         printf("%e ", y[q]);
     }
     std::cout << "\n";
+}
+
+double residual1(int n, double trace_a, double a_norm, double* lambda) {
+    double sum = 0;
+    for (int i = 0; i < n; ++i) {
+        sum += lambda[i];
+    }     
+
+    return std::fabs(trace_a - sum) / a_norm;
+}
+
+double residual2(int n, double length_a, double a_norm, double* lambda) {
+    double sum = 0;
+    for (int i = 0; i < n; ++i) {
+        sum += lambda[i] * lambda[i];
+    }   
+
+    sum = std::sqrt(sum);
+    return std::fabs(length_a - sum) / a_norm;
 }
